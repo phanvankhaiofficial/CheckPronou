@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Kiểm tra phát âm tiếng Nhật</title>
     <style>
+      * {
+        box-sizing: border-box;
+      }
       body {
         font-family: "Arial", sans-serif;
         display: flex;
@@ -27,22 +30,26 @@
         color: #333;
       }
       input,
-      button {
-        width: 100%;
+      button,
+      textarea {
+        /* Thêm textarea vào đây */
+        width: 100%; /* Đảm bảo chiều rộng bằng 100% */
         padding: 0.5rem;
         margin-bottom: 1rem;
         border: 1px solid #ddd;
         border-radius: 4px;
       }
       button {
-        background-color: #4caf50;
         color: white;
         border: none;
+        padding: 10px 15px;
+        border-radius: 5px;
         cursor: pointer;
-        transition: background-color 0.3s;
+        font-size: 16px;
+        margin: 5px; /* Thêm khoảng cách giữa các nút */
       }
       button:hover {
-        background-color: #45a049;
+        opacity: 0.9; /* Hiệu ứng khi hover */
       }
       #result {
         margin-top: 1rem;
@@ -65,13 +72,50 @@
       .score-bad {
         color: red; /* Màu đỏ cho điểm dưới 70% */
       }
+      textarea {
+        /* Thêm CSS cho textarea */
+        height: 150px; /* Chiều cao của textarea */
+        resize: vertical; /* Cho phép thay đổi kích thước theo chiều dọc */
+      }
+      #nextButton {
+        /* Thay đổi màu cho nút Kế tiếp */
+        background-color: #e71e94; /* Màu xanh dương cho nút Kế tiếp */
+      }
+      #nextButton:hover {
+        background-color: #b3066b; /* Màu xanh đậm khi hover */
+      }
+      #recordButton {
+        background-color: #28a745; /* Màu xanh cho nút Bắt đầu ghi âm */
+      }
+      #recordButton:hover {
+        background-color: #218838; /* Màu xanh đậm khi hover */
+      }
+      #showTextButton {
+        background-color: #ffc107; /* Màu vàng cho nút Hiển thị văn bản */
+      }
+      #showTextButton:hover {
+        background-color: #e0a800; /* Màu vàng đậm khi hover */
+      }
+      #readOriginalButton {
+        background-color: #17a2b8; /* Màu cyan cho nút Đọc văn bản gốc */
+      }
+      #readOriginalButton:hover {
+        background-color: #117a8b; /* Màu cyan đậm khi hover */
+      }
     </style>
   </head>
   <body>
     <div class="container">
       <h1>Kiểm tra phát âm tiếng Nhật</h1>
-      <input type="text" id="japaneseText" placeholder="Nhập câu tiếng Nhật" />
-      <button id="recordButton">Bắt đầu ghi âm</button>
+      <textarea
+        id="japaneseText"
+        placeholder="Nhập câu tiếng Nhật"
+        rows="5"
+      ></textarea>
+      <button id="showTextButton">Hiển thị văn bản</button>
+      <button id="readOriginalButton" class="hidden">Đọc văn bản gốc</button>
+      <button id="recordButton" class="hidden">Bắt đầu ghi âm</button>
+      <button id="nextButton" class="hidden">Kế tiếp</button>
       <div id="result">
         <p id="originalText" class="hidden">Văn bản gốc: <span></span></p>
         <p id="recordingText" class="hidden">Đang ghi âm: <span></span></p>
@@ -128,17 +172,87 @@
         );
       }
 
+      let sentences = []; // Mảng để lưu trữ các câu
+      let currentSentenceIndex = 0; // Chỉ số câu hiện tại
+
+      let voices = [];
+      let utterance; // Biến để lưu đối tượng SpeechSynthesisUtterance
+
+      function populateVoiceList() {
+        voices = speechSynthesis.getVoices();
+      }
+
+      speechSynthesis.onvoiceschanged = populateVoiceList;
+
+      // Thêm sự kiện click cho nút Hiển thị văn bản
+      document
+        .getElementById("showTextButton")
+        .addEventListener("click", function () {
+          const text = document.getElementById("japaneseText").value; // Lấy văn bản từ ô nhập liệu
+          if (text.trim() === "") {
+            alert("Vui lòng nhập văn bản trước khi hiển thị.");
+            return;
+          }
+          sentences = text.split("\n"); // Tách các câu bằng dấu ngắt dòng
+          updateOriginalText(sentences[currentSentenceIndex]); // Hiển thị câu đầu tiên
+
+          // Hiển thị nút Bắt đầu ghi âm
+          document.getElementById("recordButton").classList.remove("hidden");
+        });
+
+      // Thêm sự kiện click cho nút Đọc văn bản gốc
+      document
+        .getElementById("readOriginalButton")
+        .addEventListener("click", function () {
+          const text = document.querySelector("#originalText span").textContent; // Lấy văn bản gốc
+
+          if (text.trim() === "") {
+            alert("Chưa có văn bản gốc."); // Thông báo nếu chưa có văn bản
+            return;
+          }
+
+          if (speechSynthesis.speaking) {
+            // Nếu đang nói, dừng lại
+            speechSynthesis.cancel();
+          } else {
+            // Nếu không đang nói, bắt đầu đọc
+            utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = "ja-JP"; // Đặt ngôn ngữ là tiếng Nhật
+            utterance.rate = 1; // Tốc độ
+            utterance.pitch = 1; // Độ cao
+            utterance.volume = 1; // Âm lượng
+
+            // Chọn giọng nói (ví dụ: giọng đầu tiên trong danh sách)
+            if (voices.length > 0) {
+              utterance.voice =
+                voices[Math.floor(Math.random() * voices.length)]; // Random chọn giọng
+            }
+
+            speechSynthesis.speak(utterance);
+          }
+        });
+
+      // Cập nhật hiển thị văn bản gốc và hiển thị nút "Đọc văn bản gốc"
+      function updateOriginalText(text) {
+        document.querySelector("#originalText span").textContent = text; // Cập nhật văn bản gốc
+        document.getElementById("originalText").classList.remove("hidden"); // Hiển thị văn bản gốc
+        document
+          .getElementById("readOriginalButton")
+          .classList.remove("hidden"); // Hiển thị nút Đọc văn bản gốc
+      }
+
+      // Cập nhật hàm ghi âm để sử dụng updateOriginalText
       recordButton.addEventListener("click", function () {
         if (!isRecording) {
           if (japaneseText.value.trim() === "") {
             alert("Vui lòng nhập câu tiếng Nhật trước khi ghi âm.");
             return;
           }
+          // Tách các câu bằng dấu ngắt dòng
+          sentences = japaneseText.value.split("\n");
           finalTranscript = "";
-          document.querySelector("#originalText span").textContent =
-            japaneseText.value;
+          updateOriginalText(sentences[currentSentenceIndex]); // Hiển thị câu hiện tại
           document.querySelector("#recordingText span").textContent = "";
-          document.getElementById("originalText").classList.remove("hidden");
           document.getElementById("recordingText").classList.remove("hidden");
           document.getElementById("comparisonText").classList.add("hidden");
 
@@ -157,7 +271,7 @@
 
           // Thêm thời gian chờ 1 giây trước khi so sánh văn bản
           setTimeout(() => {
-            compareTexts(japaneseText.value, finalTranscript);
+            compareTexts(sentences[currentSentenceIndex], finalTranscript);
           }, 300); // 300 ms = 0,3 giây
         }
       });
@@ -210,13 +324,39 @@
         if (scorePercentage > 70) {
           scoreSpan.classList.add("score-good");
           scoreSpan.classList.remove("score-bad");
+          document.getElementById("nextButton").classList.remove("hidden"); // Hiển thị nút Kế tiếp
         } else {
           scoreSpan.classList.add("score-bad");
           scoreSpan.classList.remove("score-good");
+          document.getElementById("nextButton").classList.add("hidden"); // Ẩn nút Kế tiếp
         }
 
         document.getElementById("score").classList.remove("hidden");
       }
+
+      document
+        .getElementById("nextButton")
+        .addEventListener("click", function () {
+          currentSentenceIndex++; // Tăng chỉ số câu hiện tại
+          if (currentSentenceIndex < sentences.length) {
+            finalTranscript = ""; // Đặt lại bản ghi cuối
+            document.querySelector("#originalText span").textContent =
+              sentences[currentSentenceIndex]; // Hiển thị câu tiếp theo
+            document.querySelector("#recordingText span").textContent = "";
+            document.getElementById("comparisonText").classList.add("hidden");
+            document.getElementById("score").classList.add("hidden"); // Ẩn điểm
+            document.getElementById("nextButton").classList.add("hidden"); // Ẩn nút Kế tiếp
+
+            // Reset kết quả hiển thị
+            const scoreSpan = document.querySelector("#score span");
+            scoreSpan.textContent = ""; // Xóa số điểm cũ
+            document.getElementById("originalText").classList.remove("hidden");
+            document.getElementById("recordingText").classList.remove("hidden");
+          } else {
+            alert("Đã hoàn thành tất cả các câu!");
+            // Có thể thêm logic để reset hoặc làm gì đó khác ở đây
+          }
+        });
     </script>
   </body>
 </html>
