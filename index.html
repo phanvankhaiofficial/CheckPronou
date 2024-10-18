@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kiểm tra phát âm tiếng Nhật</title>
+    <style>
+      body {
+        font-family: "Arial", sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        background-color: #f0f0f0;
+      }
+      .container {
+        background-color: white;
+        padding: 2rem;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        max-width: 500px;
+        width: 100%;
+      }
+      h1 {
+        text-align: center;
+        color: #333;
+      }
+      input,
+      button {
+        width: 100%;
+        padding: 0.5rem;
+        margin-bottom: 1rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+      }
+      button {
+        background-color: #4caf50;
+        color: white;
+        border: none;
+        cursor: pointer;
+        transition: background-color 0.3s;
+      }
+      button:hover {
+        background-color: #45a049;
+      }
+      #result {
+        margin-top: 1rem;
+        font-size: 1.1rem;
+        line-height: 1.5;
+        min-height: 150px; /* Đặt chiều cao tối thiểu cho khu vực kết quả */
+      }
+      .correct {
+        color: green;
+      }
+      .incorrect {
+        color: red;
+      }
+      .hidden {
+        visibility: hidden;
+      }
+      .score-good {
+        color: green; /* Màu xanh cho điểm trên 70% */
+      }
+      .score-bad {
+        color: red; /* Màu đỏ cho điểm dưới 70% */
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Kiểm tra phát âm tiếng Nhật</h1>
+      <input type="text" id="japaneseText" placeholder="Nhập câu tiếng Nhật" />
+      <button id="recordButton">Bắt đầu ghi âm</button>
+      <div id="result">
+        <p id="originalText" class="hidden">Văn bản gốc: <span></span></p>
+        <p id="recordingText" class="hidden">Đang ghi âm: <span></span></p>
+        <p id="comparisonText" class="hidden">So sánh: <span></span></p>
+      </div>
+      <div id="score" class="hidden">Điểm phát âm: <span></span></div>
+    </div>
+
+    <script>
+      const japaneseText = document.getElementById("japaneseText");
+      const recordButton = document.getElementById("recordButton");
+      const result = document.getElementById("result");
+
+      let recognition;
+      let isRecording = false;
+      let finalTranscript = "";
+
+      if ("webkitSpeechRecognition" in window) {
+        recognition = new webkitSpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = "ja-JP";
+
+        recognition.onresult = function (event) {
+          let interimTranscript = "";
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+              finalTranscript += event.results[i][0].transcript;
+            } else {
+              interimTranscript += event.results[i][0].transcript;
+            }
+          }
+          // Cập nhật kết quả tạm thời
+          document.querySelector("#originalText span").textContent =
+            japaneseText.value;
+          document.querySelector("#recordingText span").textContent =
+            finalTranscript + interimTranscript;
+          document.getElementById("originalText").classList.remove("hidden");
+          document.getElementById("recordingText").classList.remove("hidden");
+        };
+
+        recognition.onerror = function (event) {
+          console.error("Lỗi nhận dạng giọng nói:", event.error);
+        };
+
+        recognition.onend = function () {
+          if (isRecording) {
+            recognition.start();
+          }
+        };
+      } else {
+        alert(
+          "Trình duyệt của bạn không hỗ trợ nhận dạng giọng nói. Vui lòng sử dụng Google Chrome, Edge hoặc Cốc Cốc"
+        );
+      }
+
+      recordButton.addEventListener("click", function () {
+        if (!isRecording) {
+          if (japaneseText.value.trim() === "") {
+            alert("Vui lòng nhập câu tiếng Nhật trước khi ghi âm.");
+            return;
+          }
+          finalTranscript = "";
+          document.querySelector("#originalText span").textContent =
+            japaneseText.value;
+          document.querySelector("#recordingText span").textContent = "";
+          document.getElementById("originalText").classList.remove("hidden");
+          document.getElementById("recordingText").classList.remove("hidden");
+          document.getElementById("comparisonText").classList.add("hidden");
+
+          // Đặt lại điểm cũ
+          const scoreSpan = document.querySelector("#score span");
+          scoreSpan.textContent = ""; // Xóa số điểm cũ
+          document.getElementById("score").classList.add("hidden"); // Ẩn điểm
+
+          recognition.start();
+          recordButton.textContent = "Dừng ghi âm";
+          isRecording = true;
+        } else {
+          recognition.stop();
+          recordButton.textContent = "Bắt đầu ghi âm";
+          isRecording = false;
+
+          // Thêm thời gian chờ 1 giây trước khi so sánh văn bản
+          setTimeout(() => {
+            compareTexts(japaneseText.value, finalTranscript);
+          }, 300); // 300 ms = 0,3 giây
+        }
+      });
+
+      function compareTexts(original, spoken) {
+        const originalChars = original.split("");
+        const spokenChars = spoken.replace(/\s/g, "").split("");
+        let comparisonHtml = "";
+        let correctCount = 0; // Biến để đếm số ký tự đúng
+
+        let i = 0;
+        let j = 0;
+
+        while (i < originalChars.length || j < spokenChars.length) {
+          if (
+            i < originalChars.length &&
+            j < spokenChars.length &&
+            originalChars[i] === spokenChars[j]
+          ) {
+            comparisonHtml += `<span class="correct">${originalChars[i]}</span>`;
+            correctCount++; // Tăng số ký tự đúng
+            i++;
+            j++;
+          } else if (i < originalChars.length) {
+            // Kiểm tra nếu ký tự là "、" hoặc "。"
+            if (originalChars[i] === "、" || originalChars[i] === "。") {
+              comparisonHtml += `<span class="correct">${originalChars[i]}</span>`;
+              correctCount++; // Tăng số ký tự đúng
+            } else {
+              comparisonHtml += `<span class="incorrect">${originalChars[i]}</span>`;
+            }
+            i++;
+          } else {
+            j++;
+          }
+        }
+
+        document.querySelector("#comparisonText span").innerHTML =
+          comparisonHtml;
+        document.getElementById("comparisonText").classList.remove("hidden");
+
+        // Tính toán và hiển thị điểm
+        const scorePercentage = Math.round(
+          (correctCount / originalChars.length) * 100
+        ); // Làm tròn thành số nguyên
+        const scoreSpan = document.querySelector("#score span");
+        scoreSpan.textContent = scorePercentage + "%";
+
+        // Áp dụng lớp CSS dựa trên điểm
+        if (scorePercentage > 70) {
+          scoreSpan.classList.add("score-good");
+          scoreSpan.classList.remove("score-bad");
+        } else {
+          scoreSpan.classList.add("score-bad");
+          scoreSpan.classList.remove("score-good");
+        }
+
+        document.getElementById("score").classList.remove("hidden");
+      }
+    </script>
+  </body>
+</html>
