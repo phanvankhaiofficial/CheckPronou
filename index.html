@@ -77,11 +77,11 @@
         height: 150px; /* Chiều cao của textarea */
         resize: vertical; /* Cho phép thay đổi kích thước theo chiều dọc */
       }
-      #nextButton {
+      #showTextButton {
         /* Thay đổi màu cho nút Kế tiếp */
         background-color: #e71e94; /* Màu xanh dương cho nút Kế tiếp */
       }
-      #nextButton:hover {
+      #showTextButton:hover {
         background-color: #b3066b; /* Màu xanh đậm khi hover */
       }
       #recordButton {
@@ -90,10 +90,10 @@
       #recordButton:hover {
         background-color: #218838; /* Màu xanh đậm khi hover */
       }
-      #showTextButton {
+      #nextButton {
         background-color: #ffc107; /* Màu vàng cho nút Hiển thị văn bản */
       }
-      #showTextButton:hover {
+      #nextButton:hover {
         background-color: #e0a800; /* Màu vàng đậm khi hover */
       }
       #readOriginalButton {
@@ -101,6 +101,19 @@
       }
       #readOriginalButton:hover {
         background-color: #117a8b; /* Màu cyan đậm khi hover */
+      }
+      #resetButton {
+        background-color: #6c757d; /* Màu xám */
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        margin: 5px; /* Thêm khoảng cách giữa các nút */
+      }
+      #resetButton:hover {
+        background-color: #5a6268; /* Màu xám đậm khi hover */
       }
     </style>
   </head>
@@ -112,6 +125,7 @@
         placeholder="Nhập câu tiếng Nhật"
         rows="5"
       ></textarea>
+      <button id="resetButton">Reset</button>
       <button id="showTextButton">Hiển thị văn bản</button>
       <button id="readOriginalButton" class="hidden">Đọc văn bản gốc</button>
       <button id="recordButton" class="hidden">Bắt đầu ghi âm</button>
@@ -148,11 +162,11 @@
               interimTranscript += event.results[i][0].transcript;
             }
           }
-          // Cập nhật kết quả tạm thời
-          document.querySelector("#originalText span").textContent =
-            japaneseText.value;
+          // // Cập nhật kết quả tạm thời
+          // document.querySelector("#originalText span").textContent =
+          //   sentences[currentSentenceIndex]; // Chỉ hiển thị dòng văn bản hiện tại
           document.querySelector("#recordingText span").textContent =
-            finalTranscript + interimTranscript;
+            finalTranscript + interimTranscript; // Văn bản đã ghi âm
           document.getElementById("originalText").classList.remove("hidden");
           document.getElementById("recordingText").classList.remove("hidden");
         };
@@ -224,8 +238,7 @@
 
             // Chọn giọng nói (ví dụ: giọng đầu tiên trong danh sách)
             if (voices.length > 0) {
-              utterance.voice =
-                voices[Math.floor(Math.random() * voices.length)]; // Random chọn giọng
+              utterance.voice = voices[3]; // Random chọn giọng 2 hoặc 3
             }
 
             speechSynthesis.speak(utterance);
@@ -292,7 +305,7 @@
             originalChars[i] === spokenChars[j]
           ) {
             comparisonHtml += `<span class="correct">${originalChars[i]}</span>`;
-            correctCount++; // Tăng số ký tự đúng
+            correctCount++; // Tăng s�� ký tự đúng
             i++;
             j++;
           } else if (i < originalChars.length) {
@@ -357,6 +370,21 @@
             // Có thể thêm logic để reset hoặc làm gì đó khác ở đây
           }
         });
+
+      document.getElementById("resetButton").addEventListener("click", function () {
+        // Đặt lại các biến
+        finalTranscript = "";
+        currentSentenceIndex = 0; // Đặt lại chỉ số câu hiện tại
+        sentences = []; // Xóa mảng câu
+
+        // Ẩn tất cả các phần tử kết quả
+        document.getElementById("originalText").classList.add("hidden");
+        document.getElementById("recordingText").classList.add("hidden");
+        document.getElementById("comparisonText").classList.add("hidden");
+        document.getElementById("score").classList.add("hidden");
+        document.getElementById("nextButton").classList.add("hidden");
+        document.getElementById("recordButton").classList.add("hidden"); // Ẩn nút ghi âm
+      });
     </script>
   </body>
 </html>
